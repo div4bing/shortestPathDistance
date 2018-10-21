@@ -1,78 +1,107 @@
 #include <stdio.h>
+#include <stdlib.h>
 
-#define NUMBER_OF_CITY 11
-// #define NUMBER_OF_CITY 6
-#define INFI 9999
+#define NUMBER_OF_INPUT_PARAMETER 3
+#define INFI 9999999999
+#define NUMBER_OF_CITY 11                                                       // Change as per the number of City/node for input
 
-int printMatirx(int matrix[NUMBER_OF_CITY][NUMBER_OF_CITY]);
-void printPathfromPtable(int P[NUMBER_OF_CITY][NUMBER_OF_CITY], int q, int r);
+long long getTotalLines(FILE *fp);
+void printPathfromPtable(long long P[NUMBER_OF_CITY][NUMBER_OF_CITY], long long q, long long r);
 
-int printMatirx(int matrix[NUMBER_OF_CITY][NUMBER_OF_CITY])                     // Print the Matrix
-{
-  int i, j;
-  for (i = 0; i < NUMBER_OF_CITY; i++)
-  {
-    for (j = 0; j < NUMBER_OF_CITY; j++)
-    {
-      printf("%d ", matrix[i][j]);
-    }
-    printf("\n");
-  }
-}
+long long totalLines;
+FILE *inputFD;
+FILE *outputFD;
 
-void printPathfromPtable(int P[NUMBER_OF_CITY][NUMBER_OF_CITY], int q, int r)   // Finds intermediate nodes recursively
+// Recursive function to print intermediate shortest path
+void printPathfromPtable(long long P[NUMBER_OF_CITY][NUMBER_OF_CITY], long long q, long long r)
 {
   if (P[q][r] != 0)                                                             // Check if we have intermediate nodes
   {
     printPathfromPtable(P, q, (P[q][r] - 1));                                   // Find further intermediate nodes
-    printf("%d->", P[q][r]);                                                    // Print the intermediate node
+    fprintf(outputFD, "%lld->", P[q][r]);                                       // Print the intermediate node
     printPathfromPtable(P, (P[q][r] - 1), r);                                   // Find further intermediate nodes
   }
 
   return;
 }
 
+// Function to fetch total lines from input
+long long getTotalLines(FILE *fp)
+{
+  long long totalLines = 0;
+  char string[100];
+
+  while(!feof(fp)) {
+    fgets(string, 100, fp);
+    totalLines++;
+  }
+
+  totalLines--;
+
+  if(fseek(fp, 0L, SEEK_SET) == EOF) {
+    perror("Error while seeking to begining of file");
+    exit(0);
+  }
+
+  return totalLines;
+}
+
+// Main function
 int main (int argc, char *argv[])
 {
-  // Load the given graph in the array for calculation
-  int cityPath[NUMBER_OF_CITY][NUMBER_OF_CITY] = {{0, 140, INFI, INFI, INFI, 180, 100, 70, INFI, INFI, INFI}, \
-                                                  {140, 0, 130, INFI, 100, INFI, INFI, INFI, INFI, INFI, INFI}, \
-                                                  {INFI, 130, 0, 160, INFI, INFI, INFI, INFI, INFI, INFI, INFI}, \
-                                                  {INFI, INFI, 160, 0, 65, INFI, INFI, INFI, INFI, INFI, 180}, \
-                                                  {INFI, 100, INFI, 65, 0, 70, INFI, INFI, 70, INFI, INFI}, \
-                                                  {180, INFI, INFI, INFI, 70, 0, 60, INFI, INFI, INFI, INFI}, \
-                                                  {100, INFI, INFI, INFI, INFI, 60, 0, INFI, INFI, INFI, INFI}, \
-                                                  {70, INFI, INFI, INFI, INFI, INFI, 65, 0, INFI, INFI, INFI}, \
-                                                  {INFI, INFI, INFI, INFI, 70, INFI, INFI, INFI, 0, 60, INFI}, \
-                                                  {INFI, INFI, INFI, INFI, INFI, INFI, INFI, INFI, 60, 0, 100}, \
-                                                  {INFI, INFI, INFI, 180, INFI, INFI, INFI, INFI, INFI, 100, 0} \
-                                                };
+  long long cityPath[NUMBER_OF_CITY][NUMBER_OF_CITY];
+  long long pTable[NUMBER_OF_CITY][NUMBER_OF_CITY];
+  long long i, j, k;
+  long long q, r;
+  char string[100];
 
-  // int cityPath[NUMBER_OF_CITY][NUMBER_OF_CITY] = {{0, 5, INFI, 7, 3, 1}, \
-  //                                                 {5, 0, 4, INFI, INFI, 1}, \
-  //                                                 {INFI, 4, 0, 2, INFI, 1}, \
-  //                                                 {7, INFI, 2, 0, 3, 50}, \
-  //                                                 {3, INFI, INFI, 3, 0, INFI}, \
-  //                                                 {1, 1, 1, 50, INFI, 0} \
-  //                                                 };
+  if (argc != 3)                                                                // Make sure the number of input is correct
+  {
+    printf("Error! Invalid number of Arguments. Please run program as ./submission inputFile.txt outputFile.txt\n");
+    return -1;
+  }
 
-  int pTable[NUMBER_OF_CITY][NUMBER_OF_CITY];                                   // P - Table to store the route for shortest distance
-  int i, j, k;
-  int q, r;
+  inputFD = fopen(argv[1], "r");                                                // Open file for Reading the input
+  if (inputFD == NULL)
+  {
+    perror("Error opening the input file");
+    return -1;
+  }
 
-  printf("Original Matrix\n");
-  printMatirx(cityPath);
+  totalLines = getTotalLines(inputFD) + 1;
 
-  for (i=0; i < NUMBER_OF_CITY; i++)                                            // Initialize P-Table with all 0
+  for (i = 0; i < NUMBER_OF_CITY; i++)                                          // Initialize cityPath array with 0 or INFI
   {
     for (j = 0; j < NUMBER_OF_CITY; j++)
     {
-      pTable[i][j] = 0;
+      pTable[i][j] = 0;                                                         // Initialize P -Table all zero
+
+      if (i == j)
+      {
+        cityPath[i][j] = 0;                                                     // If self node, distance is 0
+      }
+      else
+      {
+        cityPath[i][j] = INFI;                                                  // Rest Initialize to INFI
+      }
     }
   }
 
-  printf("Original P-Table\n");
-  printMatirx(pTable);
+  long long tempNode1 = 0, tempNode2 = 0, tempDistance = 0;
+  for(i=0; i < totalLines; i++)                                                 // Load given input to Array
+  {
+    fgets(string, 100, inputFD);
+    sscanf(string, "%lld %lld %lld", &tempNode1, &tempNode2, &tempDistance);
+    cityPath[tempNode1-1][tempNode2-1] = tempDistance;                          // Update values directly to cityPath from input
+  }
+  fclose(inputFD);                                                              // Close input file
+
+  outputFD = fopen(argv[2], "w");                                               // Open file for Writing the output
+  if (outputFD == NULL)
+  {
+    perror("Error opening the ouput file");
+    return -1;
+  }
 
   for (k = 0; k < NUMBER_OF_CITY; k++)                                          // Floyd's Algorithm to calculate shortest path in-place
   {
@@ -80,7 +109,7 @@ int main (int argc, char *argv[])
     {
       for (j = 0; j < NUMBER_OF_CITY; j++)
       {
-        if (cityPath[i][j] > (cityPath[i][k] + cityPath[k][j]))
+        if (cityPath[i][j] > (cityPath[i][k] + cityPath[k][j]))                 // If new distance with intermediate node is less than original load it and mark in P Table
         {
           cityPath[i][j] = (cityPath[i][k] + cityPath[k][j]);
           pTable[i][j] = (k+1);                                                 // So that we have node number starting from 1
@@ -89,27 +118,20 @@ int main (int argc, char *argv[])
     }
   }
 
-  printf("FINAL Matrix\n");
-  printMatirx(cityPath);
-
-  printf("\nFINAL P-Table\n");
-  printMatirx(pTable);
-
-  printf("\n************************ FINAL OUTPUT ************************\n\n");
-
-  for (i = 1; i <= NUMBER_OF_CITY; i++)                                         // Print all the all the node pairs with the shortest path and path
+  for (i = 1; i <= NUMBER_OF_CITY; i++)                                         // Print all the all the node pairs with the shortest path and path to output file
   {
     for (j = 1; j <= NUMBER_OF_CITY; j++)
     {
       q = i;
       r = j;
 
-      printf("%d %d %d ", q, r, cityPath[q-1][r-1]);
-      printf("path:%d->", q);
+      fprintf(outputFD, "%lld %lld %lld ", q, r, cityPath[q-1][r-1]);           // Write the output to the file
+      fprintf(outputFD, "path:%lld->", q);
       printPathfromPtable(pTable, (q-1), (r-1));                                // Find the path for given two nodes recursively
-      printf("%d\n", r);
+      fprintf(outputFD, "%lld\n", r);
     }
   }
 
+  fclose(outputFD);                                                             // Close output file
   return 0;
 }
